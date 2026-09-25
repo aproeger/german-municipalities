@@ -12,6 +12,7 @@ Standard fields:
 - state: Name of the federal state (from record type 10)
 - district: Name of the district / independent city (from record type 40)
 - name: Official municipality name
+- type: Type of municipality ('City', 'Municipality', 'Unincorporated area')
 - postal_code: 5-digit postal code of the administrative headquarters
 - population: Population (based on 2022 Census)
 - area_km2: Area in km²
@@ -29,6 +30,35 @@ import sys
 import time
 from typing import Any, Dict, List, Optional
 import openpyxl
+
+# Destatis official Textkennzeichen (TKZ) mapping for Satzart 60
+TKZ_TO_TYPE: Dict[str, str] = {
+    "60": "Municipality",         # Markt (classified as Municipality)
+    "61": "City",                 # Kreisfreie Stadt
+    "62": "City",                 # Stadtkreis (Baden-Württemberg)
+    "63": "City",                 # Kreisangehörige Stadt / Stadt
+    "64": "Municipality",         # Kreisangehörige Gemeinde / Gemeinde
+    "65": "Unincorporated area",   # Gemeindefreier Bezirk
+    "66": "Unincorporated area",   # Gemeindefreies Gebiet
+    "67": "City",                 # Große Kreisstadt
+}
+
+
+def determine_type(tkz: Any, raw_name: Optional[str] = None) -> str:
+    """Determines whether a municipality is a City, Municipality, or Unincorporated area."""
+    if tkz is not None:
+        clean_tkz = str(tkz).strip()
+        if clean_tkz in TKZ_TO_TYPE:
+            return TKZ_TO_TYPE[clean_tkz]
+
+    if raw_name:
+        lower_name = raw_name.lower()
+        if any(term in lower_name for term in [", stadt", ", hansestadt", ", landeshauptstadt", ", st", ", gkst"]):
+            return "City"
+        if "gemfr." in lower_name or "gemeindefreies" in lower_name:
+            return "Unincorporated area"
+
+    return "Municipality"
 
 
 def parse_float_coordinate(val: Any) -> Optional[float]:
@@ -97,6 +127,13 @@ def build_ags(r2: Any, r3: Any, r4: Any, r6: Any) -> str:
     return f"{land}{rb}{kreis}{gem}"
 
 
+def strip_name_suffix(val: Optional[str]) -> Optional[str]:
+    """Removes official title and status suffixes following a comma (e.g. ', Stadt', ', Hansestadt', ', M')."""
+    if not val or "," not in val:
+        return val
+    return val.split(",", 1)[0].strip()
+
+
 def find_data_sheet(workbook: openpyxl.Workbook) -> openpyxl.worksheet.worksheet.Worksheet:
     """Finds the worksheet containing the municipality data."""
     for name in workbook.sheetnames:
@@ -112,6 +149,7 @@ def extract_data(
     excel_path: str,
     inhabited_only: bool = False,
     include_extra: bool = False,
+    strip_suffixes: bool = False,
 ) -> List[Dict[str, Any]]:
     """Reads the Excel file and transforms the data."""
     if not os.path.exists(excel_path):
@@ -158,12 +196,17 @@ def extract_data(
             plz = format_plz(row[13])
             lon = parse_float_coordinate(row[14])
             lat = parse_float_coordinate(row[15])
+            m_type = determine_type(row[1], name)
+
+            district_name = strip_name_suffix(current_kreis_name) if strip_suffixes else current_kreis_name
+            municipality_name = (strip_name_suffix(name) or name) if strip_suffixes else name
 
             record: Dict[str, Any] = {
                 "ars": ars,
                 "state": current_land_name,
-                "district": current_kreis_name,
-                "name": name,
+                "district": district_name,
+                "name": municipality_name,
+                "type": m_type,
                 "postal_code": plz,
                 "population": einwohner,
                 "area_km2": flaeche,
@@ -266,6 +309,11 @@ def main() -> None:
         action="store_true",
         help="Compress JSON without indentation/whitespace (saves disk space)",
     )
+    parser.add_argument(
+        "--strip-suffixes",
+        action="store_true",
+        help="Strip official title and status suffixes following a comma (e.g. ', Stadt', ', Hansestadt', ', M')",
+    )
 
     args = parser.parse_args()
 
@@ -277,6 +325,7 @@ def main() -> None:
             excel_path=args.input,
             inhabited_only=args.inhabited_only,
             include_extra=args.include_extra,
+            strip_suffixes=args.strip_suffixes,
         )
     except Exception as exc:
         print(f"Error while reading file: {exc}", file=sys.stderr)
