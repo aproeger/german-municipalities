@@ -15,6 +15,7 @@ Standard fields:
 - slug: URL-safe slug with German umlaut transliteration
 - type: Type of municipality ('City', 'Municipality', 'Unincorporated area')
 - postal_code: 5-digit postal code of the administrative headquarters
+- country_code: ISO 3166-1 alpha-2 country code (always 'DE')
 - population: Population (based on 2022 Census)
 - area_km2: Area in km²
 - latitude: Geographic latitude
@@ -229,6 +230,7 @@ def extract_data(
                 "slug": slug,
                 "type": m_type,
                 "postal_code": plz,
+                "country_code": "DE",
                 "population": einwohner,
                 "area_km2": flaeche,
                 "latitude": lat,

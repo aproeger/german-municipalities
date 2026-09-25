@@ -6,19 +6,20 @@ https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichni
 
 ## Included Fields
 
-| Field         | Type        | Description                                                                 | Example                |
-| ------------- | ----------- | --------------------------------------------------------------------------- | ---------------------- |
-| `ars`         | String (12) | Official Regional Key (State + Admin District + District + Assc + Mun)      | `"010010000000"`       |
-| `state`       | String      | Name of the federal state                                                   | `"Schleswig-Holstein"` |
-| `district`    | String      | Name of the rural district (Landkreis) or urban district (kreisfreie Stadt) | `"Flensburg, Stadt"`   |
-| `name`        | String      | Official municipality name                                                  | `"Flensburg, Stadt"`   |
-| `slug`        | String      | URL-friendly slug with German umlaut transliteration                        | `"flensburg"`          |
-| `type`        | String      | Classification (`City`, `Municipality`, `Unincorporated area`)              | `"City"`               |
-| `postal_code` | String (5)  | 5-digit postal code of the administrative headquarters                      | `"24937"` or `"01067"` |
-| `population`  | Integer     | Population count (based on the 2022 Census)                                 | `95568`                |
-| `area_km2`    | Float       | Cadastral area in km²                                                       | `56.73`                |
-| `latitude`    | Float       | Geographic latitude of the centroid                                         | `54.78252`             |
-| `longitude`   | Float       | Geographic longitude of the centroid                                        | `9.43751`              |
+| Field          | Type        | Description                                                                 | Example                |
+| -------------- | ----------- | --------------------------------------------------------------------------- | ---------------------- |
+| `ars`          | String (12) | Official Regional Key (State + Admin District + District + Assc + Mun)      | `"010010000000"`       |
+| `state`        | String      | Name of the federal state                                                   | `"Schleswig-Holstein"` |
+| `district`     | String      | Name of the rural district (Landkreis) or urban district (kreisfreie Stadt) | `"Flensburg, Stadt"`   |
+| `name`         | String      | Official municipality name                                                  | `"Flensburg, Stadt"`   |
+| `slug`         | String      | URL-friendly slug with German umlaut transliteration                        | `"flensburg"`          |
+| `type`         | String      | Classification (`City`, `Municipality`, `Unincorporated area`)              | `"City"`               |
+| `postal_code`  | String (5)  | 5-digit postal code of the administrative headquarters                      | `"24937"` or `"01067"` |
+| `country_code` | String (2)  | ISO 3166-1 alpha-2 country code                                             | `"DE"`                 |
+| `population`   | Integer     | Population count (based on the 2022 Census)                                 | `95568`                |
+| `area_km2`     | Float       | Cadastral area in km²                                                       | `56.73`                |
+| `latitude`     | Float       | Geographic latitude of the centroid                                         | `54.78252`             |
+| `longitude`    | Float       | Geographic longitude of the centroid                                        | `9.43751`              |
 
 ## Prerequisites
 
