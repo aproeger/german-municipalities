@@ -12,6 +12,7 @@ Standard fields:
 - state: Name of the federal state (from record type 10)
 - district: Name of the district / independent city (from record type 40)
 - name: Official municipality name
+- slug: URL-safe slug with German umlaut transliteration
 - type: Type of municipality ('City', 'Municipality', 'Unincorporated area')
 - postal_code: 5-digit postal code of the administrative headquarters
 - population: Population (based on 2022 Census)
@@ -30,6 +31,7 @@ import sys
 import time
 from typing import Any, Dict, List, Optional
 import openpyxl
+from slugify import slugify
 
 # Destatis official Textkennzeichen (TKZ) mapping for Satzart 60
 TKZ_TO_TYPE: Dict[str, str] = {
@@ -59,6 +61,23 @@ def determine_type(tkz: Any, raw_name: Optional[str] = None) -> str:
             return "Unincorporated area"
 
     return "Municipality"
+
+
+GERMAN_SLUG_REPLACEMENTS = [
+    ["ä", "ae"],
+    ["ö", "oe"],
+    ["ü", "ue"],
+    ["ß", "ss"],
+    ["Ä", "ae"],
+    ["Ö", "oe"],
+    ["Ü", "ue"],
+]
+
+
+def generate_slug(text: str) -> str:
+    """Generates a safe URL slug with German umlaut transliteration."""
+    base_text = strip_name_suffix(text) or text
+    return slugify(base_text, replacements=GERMAN_SLUG_REPLACEMENTS)
 
 
 def parse_float_coordinate(val: Any) -> Optional[float]:
@@ -197,6 +216,7 @@ def extract_data(
             lon = parse_float_coordinate(row[14])
             lat = parse_float_coordinate(row[15])
             m_type = determine_type(row[1], name)
+            slug = generate_slug(name)
 
             district_name = strip_name_suffix(current_kreis_name) if strip_suffixes else current_kreis_name
             municipality_name = (strip_name_suffix(name) or name) if strip_suffixes else name
@@ -206,6 +226,7 @@ def extract_data(
                 "state": current_land_name,
                 "district": district_name,
                 "name": municipality_name,
+                "slug": slug,
                 "type": m_type,
                 "postal_code": plz,
                 "population": einwohner,

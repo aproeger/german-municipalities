@@ -12,6 +12,7 @@ https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichni
 | `state`       | String      | Name of the federal state                                                   | `"Schleswig-Holstein"` |
 | `district`    | String      | Name of the rural district (Landkreis) or urban district (kreisfreie Stadt) | `"Flensburg, Stadt"`   |
 | `name`        | String      | Official municipality name                                                  | `"Flensburg, Stadt"`   |
+| `slug`        | String      | URL-friendly slug with German umlaut transliteration                        | `"flensburg"`          |
 | `type`        | String      | Classification (`City`, `Municipality`, `Unincorporated area`)              | `"City"`               |
 | `postal_code` | String (5)  | 5-digit postal code of the administrative headquarters                      | `"24937"` or `"01067"` |
 | `population`  | Integer     | Population count (based on the 2022 Census)                                 | `95568`                |
