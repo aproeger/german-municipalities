@@ -25,6 +25,7 @@ https://www.destatis.de/DE/Themen/Laender-Regionen/Regionales/Gemeindeverzeichni
 """
 
 import argparse
+from collections import Counter
 import csv
 import json
 import os
@@ -77,8 +78,53 @@ GERMAN_SLUG_REPLACEMENTS = [
 
 def generate_slug(text: str) -> str:
     """Generates a safe URL slug with German umlaut transliteration."""
-    base_text = strip_name_suffix(text) or text
-    return slugify(base_text, replacements=GERMAN_SLUG_REPLACEMENTS)
+    return slugify(text, replacements=GERMAN_SLUG_REPLACEMENTS)
+
+
+def ensure_unique_slugs_and_names(records: List[Dict[str, Any]]) -> None:
+    """
+    Ensures that every municipality has a globally unique slug.
+    If a slug occurs multiple times, appends the district in parentheses to the name.
+    If collisions still remain within the same district, further disambiguates with type/plz.
+    """
+    # Pass 1: detect duplicate slugs and append district in parentheses to the name
+    slug_counts = Counter(r["slug"] for r in records)
+    for r in records:
+        if slug_counts[r["slug"]] > 1 and r.get("district"):
+            if not r["name"].endswith(f"({r['district']})"):
+                r["name"] = f"{r['name']} ({r['district']})"
+            r["slug"] = generate_slug(r["name"])
+
+    # Pass 2: handle remaining collisions occurring within the same district
+    slug_counts2 = Counter(r["slug"] for r in records)
+    for r in records:
+        if slug_counts2[r["slug"]] > 1:
+            if r.get("type") == "Unincorporated area":
+                suffix = "gemfr. Gebiet"
+            elif r.get("ars") == "010545417035":
+                suffix = "Kirchspiel"
+            elif r.get("postal_code"):
+                suffix = r["postal_code"]
+            else:
+                suffix = r.get("ars", "")
+
+            if r["name"].endswith(")"):
+                r["name"] = f"{r['name'][:-1]}, {suffix})"
+            else:
+                r["name"] = f"{r['name']} ({suffix})"
+            r["slug"] = generate_slug(r["name"])
+
+    # Pass 3: final safety guarantee to ensure absolute mathematical uniqueness
+    seen_slugs: Dict[str, int] = {}
+    for r in records:
+        s = r["slug"]
+        if s in seen_slugs:
+            seen_slugs[s] += 1
+            idx = seen_slugs[s]
+            r["name"] = f"{r['name']} ({idx})"
+            r["slug"] = f"{s}-{idx}"
+        else:
+            seen_slugs[s] = 1
 
 
 def parse_float_coordinate(val: Any) -> Optional[float]:
@@ -217,10 +263,9 @@ def extract_data(
             lon = parse_float_coordinate(row[14])
             lat = parse_float_coordinate(row[15])
             m_type = determine_type(row[1], name)
-            slug = generate_slug(name)
-
             district_name = strip_name_suffix(current_kreis_name) if strip_suffixes else current_kreis_name
             municipality_name = (strip_name_suffix(name) or name) if strip_suffixes else name
+            slug = generate_slug(strip_name_suffix(name) or name)
 
             record: Dict[str, Any] = {
                 "ars": ars,
@@ -250,6 +295,7 @@ def extract_data(
             records.append(record)
 
     wb.close()
+    ensure_unique_slugs_and_names(records)
     return records
 
 
