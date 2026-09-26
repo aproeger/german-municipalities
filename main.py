@@ -81,19 +81,17 @@ def generate_slug(text: str) -> str:
     return slugify(text, replacements=GERMAN_SLUG_REPLACEMENTS)
 
 
-def ensure_unique_slugs_and_names(records: List[Dict[str, Any]]) -> None:
+def ensure_unique_slugs(records: List[Dict[str, Any]]) -> None:
     """
     Ensures that every municipality has a globally unique slug.
-    If a slug occurs multiple times, appends the district in parentheses to the name.
-    If collisions still remain within the same district, further disambiguates with type/plz.
+    If a slug occurs multiple times, appends the district to the slug (leaving the official name unchanged).
+    If collisions still remain within the same district, further disambiguates with type/plz/ars.
     """
-    # Pass 1: detect duplicate slugs and append district in parentheses to the name
+    # Pass 1: detect duplicate slugs and append district to the slug
     slug_counts = Counter(r["slug"] for r in records)
     for r in records:
         if slug_counts[r["slug"]] > 1 and r.get("district"):
-            if not r["name"].endswith(f"({r['district']})"):
-                r["name"] = f"{r['name']} ({r['district']})"
-            r["slug"] = generate_slug(r["name"])
+            r["slug"] = generate_slug(f"{r['slug']} {r['district']}")
 
     # Pass 2: handle remaining collisions occurring within the same district
     slug_counts2 = Counter(r["slug"] for r in records)
@@ -108,11 +106,7 @@ def ensure_unique_slugs_and_names(records: List[Dict[str, Any]]) -> None:
             else:
                 suffix = r.get("ars", "")
 
-            if r["name"].endswith(")"):
-                r["name"] = f"{r['name'][:-1]}, {suffix})"
-            else:
-                r["name"] = f"{r['name']} ({suffix})"
-            r["slug"] = generate_slug(r["name"])
+            r["slug"] = generate_slug(f"{r['slug']} {suffix}")
 
     # Pass 3: final safety guarantee to ensure absolute mathematical uniqueness
     seen_slugs: Dict[str, int] = {}
@@ -121,10 +115,13 @@ def ensure_unique_slugs_and_names(records: List[Dict[str, Any]]) -> None:
         if s in seen_slugs:
             seen_slugs[s] += 1
             idx = seen_slugs[s]
-            r["name"] = f"{r['name']} ({idx})"
             r["slug"] = f"{s}-{idx}"
         else:
             seen_slugs[s] = 1
+
+
+# Backwards compatibility alias
+ensure_unique_slugs_and_names = ensure_unique_slugs
 
 
 def parse_float_coordinate(val: Any) -> Optional[float]:
@@ -295,7 +292,7 @@ def extract_data(
             records.append(record)
 
     wb.close()
-    ensure_unique_slugs_and_names(records)
+    ensure_unique_slugs(records)
     return records
 
 
